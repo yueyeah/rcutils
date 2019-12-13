@@ -76,6 +76,8 @@ bool g_rcutils_logging_severities_map_valid = false;
 
 int g_rcutils_logging_default_logger_level = 0;
 
+static FILE *g_output_stream = NULL;
+
 enum rcutils_colorized_output g_colorized_output = RCUTILS_COLORIZED_OUTPUT_AUTO;
 
 rcutils_ret_t rcutils_logging_initialize(void)
@@ -96,9 +98,32 @@ rcutils_ret_t rcutils_logging_initialize_with_allocator(rcutils_allocator_t allo
     g_rcutils_logging_output_handler = &rcutils_logging_console_output_handler;
     g_rcutils_logging_default_logger_level = RCUTILS_DEFAULT_LOGGER_DEFAULT_LEVEL;
 
+    // Set the default output stream for all severities to stderr so that errors
+    // are propagated immediately.  The user can choose to get stdout behavior
+    // (line-buffered) by setting the RCUTILS_CONSOLE_LINE_BUFFERED environment
+    // variable to 1.
+    g_output_stream = stderr;
+    const char * line_buffered;
+    const char * ret_str = rcutils_get_env("RCUTILS_CONSOLE_LINE_BUFFERED", &line_buffered);
+
+    if (NULL == ret_str) {
+      if (strcmp(line_buffered, "1") == 0) {
+        g_output_stream = stdout;
+      } else if (strcmp(line_buffered, "0") != 0 && strcmp(line_buffered, "") != 0) {
+        fprintf(stderr,
+          "Warning: unexpected value [%s] specified for RCUTILS_CONSOLE_LINE_BUFFERED. "
+          "Valid values are 0 (unbuffered) or 1 (buffered).  Default value 0 will be used.\n",
+          line_buffered);
+      }
+    } else {
+      fprintf(stderr, "Error getting env. variable "
+        "RCUTILS_CONSOLE_LINE_BUFFERED: %s\n", ret_str);
+      return RCUTILS_RET_INVALID_ARGUMENT;
+    }
+
     // Check the environment variable for colorized output
     const char * colorized_output;
-    const char * ret_str = rcutils_get_env("RCUTILS_COLORIZED_OUTPUT", &colorized_output);
+    ret_str = rcutils_get_env("RCUTILS_COLORIZED_OUTPUT", &colorized_output);
 
     if (NULL == ret_str) {
       if (strcmp(colorized_output, "1") == 0) {
@@ -669,7 +694,7 @@ rcutils_ret_t rcutils_logging_format_message(
     } else if (g_colorized_output == RCUTILS_COLORIZED_OUTPUT_FORCE_DISABLE) { \
       is_colorized = false; \
     } else { \
-      is_colorized = IS_STREAM_A_TTY(stderr); \
+      is_colorized = IS_STREAM_A_TTY(g_output_stream); \
     } \
   }
 #define SET_COLOR_WITH_SEVERITY(status, severity, color) \
@@ -704,10 +729,14 @@ rcutils_ret_t rcutils_logging_format_message(
       } \
     } \
   }
-# define GET_HANDLE_FROM_STDERR(status, handle) \
+# define GET_HANDLE_FROM_STREAM(status, handle) \
   { \
     if (RCUTILS_RET_OK == status) { \
-      handle = GetStdHandle(STD_ERROR_HANDLE); \
+      if (g_output_stream == stdout) { \
+        handle = GetStdHandle(STD_OUTPUT_HANDLE); \
+      } else { \
+        handle = GetStdHandle(STD_ERROR_HANDLE); \
+      } \
       if (INVALID_HANDLE_VALUE == handle) { \
         DWORD error = GetLastError(); \
         fprintf(stderr, "GetStdHandle failed with error code %lu.\n", error); \
@@ -720,14 +749,14 @@ rcutils_ret_t rcutils_logging_format_message(
     WORD color = COLOR_NORMAL; \
     HANDLE handle = INVALID_HANDLE_VALUE; \
     SET_COLOR_WITH_SEVERITY(status, severity, color) \
-    GET_HANDLE_FROM_STDERR(status, handle) \
+    GET_HANDLE_FROM_STREAM(status, handle) \
     SET_OUTPUT_COLOR_WITH_COLOR(status, color, handle) \
   }
 # define SET_STANDARD_COLOR_IN_STREAM(is_colorized, status) \
   { \
     if (is_colorized) { \
       HANDLE handle = INVALID_HANDLE_VALUE; \
-      GET_HANDLE_FROM_STDERR(status, handle) \
+      GET_HANDLE_FROM_STREAM(status, handle) \
       SET_OUTPUT_COLOR_WITH_COLOR(status, COLOR_NORMAL, handle) \
     } \
   }
@@ -832,7 +861,7 @@ void rcutils_logging_console_output_handler(
   SET_STANDARD_COLOR_IN_BUFFER(is_colorized, status, output_array)
 
   if (RCUTILS_RET_OK == status) {
-    fprintf(stderr, "%s\n", output_array.buffer);
+    fprintf(g_output_stream, "%s\n", output_array.buffer);
   }
 
   // Only does something in windows
