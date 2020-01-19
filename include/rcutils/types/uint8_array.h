@@ -45,6 +45,18 @@ RCUTILS_WARN_UNUSED
 rcutils_uint8_array_t
 rcutils_get_zero_initialized_uint8_array(void);
 
+/// Allocate memory for hmac for uint8 array struct.
+/**
+ * \return `RCUTILS_RET_OK` if successful, or
+ * \return 'RCUTILS_RET_BAD_ALLOC` if no memory could be allocated correctly
+ */
+RCUTILS_PUBLIC
+RCUTILS_WARN_UNUSED
+rcutils_ret_t
+rcutils_uint8_array_hmac_init(
+  rcutils_uint8_array_t * uint8_array,
+  size_t hmac_size);
+
 /// Initialize a zero initialized uint8 array struct.
 /**
  * This function may leak if the uint8 array struct is already initialized.
