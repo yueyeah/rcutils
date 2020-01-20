@@ -23,7 +23,8 @@ rcutils_get_zero_initialized_uint8_array(void)
     .buffer_length = 0lu,
     .buffer_capacity = 0lu,
     // add a hmac field that is initialised as NULL
-    .hmac = NULL
+    .hmac = NULL,
+    .hmac_length = 0lu
   };
   uint8_array.allocator = rcutils_get_zero_initialized_allocator();
   return uint8_array;
@@ -35,6 +36,7 @@ rcutils_uint8_array_hmac_init(
   size_t hmac_size)
 {
   if (hmac_size > 0lu) {
+    uint8_array->hmac_length = hmac_size;
     uint8_array->hmac = calloc(hmac_size, sizeof(unsigned char));
     return RCUTILS_RET_OK;
   }

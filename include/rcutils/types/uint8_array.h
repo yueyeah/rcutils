@@ -33,6 +33,7 @@ typedef struct RCUTILS_PUBLIC_TYPE rcutils_uint8_array_t
   size_t buffer_capacity;
   // add a hmac field
   unsigned char * hmac;
+  size_t hmac_length;
   rcutils_allocator_t allocator;
 } rcutils_uint8_array_t;
 
