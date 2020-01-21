@@ -22,10 +22,27 @@ rcutils_get_zero_initialized_uint8_array(void)
     .buffer = NULL,
     .buffer_length = 0lu,
     .buffer_capacity = 0lu,
+    // add a hmac field that is initialised as NULL
+    .hmac = NULL,
+    .hmac_length = 0lu
   };
   uint8_array.allocator = rcutils_get_zero_initialized_allocator();
   return uint8_array;
 }
+
+rcutils_ret_t
+rcutils_uint8_array_hmac_init(
+  rcutils_uint8_array_t * uint8_array,
+  size_t hmac_size)
+{
+  if (hmac_size > 0lu) {
+    uint8_array->hmac_length = hmac_size;
+    uint8_array->hmac = calloc(hmac_size, sizeof(unsigned char));
+    return RCUTILS_RET_OK;
+  }
+  return RCUTILS_RET_BAD_ALLOC;
+}
+
 
 rcutils_ret_t
 rcutils_uint8_array_init(
@@ -66,6 +83,10 @@ rcutils_uint8_array_fini(rcutils_uint8_array_t * uint8_array)
   uint8_array->buffer = NULL;
   uint8_array->buffer_length = 0lu;
   uint8_array->buffer_capacity = 0lu;
+  // add a hmac field
+  allocator->deallocate(uint8_array->hmac, allocator->state);
+  uint8_array->hmac = NULL;
+  printf("hmac is deallocated.\n");
   return RCUTILS_RET_OK;
 }
 
