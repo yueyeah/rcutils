@@ -31,8 +31,6 @@ typedef struct RCUTILS_PUBLIC_TYPE rcutils_uint8_array_t
   uint8_t * buffer;
   size_t buffer_length;
   size_t buffer_capacity;
-  // counter field will start counting from a random number
-  int counter;
   rcutils_allocator_t allocator;
 } rcutils_uint8_array_t;
 

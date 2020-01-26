@@ -22,8 +22,6 @@ rcutils_get_zero_initialized_uint8_array(void)
     .buffer = NULL,
     .buffer_length = 0lu,
     .buffer_capacity = 0lu,
-    // counter field will start counting from a random number
-    .counter = 0lu
   };
   uint8_array.allocator = rcutils_get_zero_initialized_allocator();
   return uint8_array;
@@ -68,7 +66,6 @@ rcutils_uint8_array_fini(rcutils_uint8_array_t * uint8_array)
   uint8_array->buffer = NULL;
   uint8_array->buffer_length = 0lu;
   uint8_array->buffer_capacity = 0lu;
-  uint8_array->counter = 0lu;
   return RCUTILS_RET_OK;
 }
 
